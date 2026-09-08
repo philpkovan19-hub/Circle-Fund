@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CircleFund — Save together, turn by turn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+<style>
+  /* --------- Warm bulletin-board palette --------- */
+  :root {
+    --parchment: #f5efe1;
+    --parchment-2: #ece3cd;
+    --cork: #b98a5a;
+    --cork-dark: #8f643b;
+    --ink: #1a1815;
+    --ink-soft: #4a443a;
+    --red: #c0442e;
+    --red-dark: #8f2f1e;
+    --thread: #b4361f;
+    --tack: #d84a3b;
+    --tack-blue: #3b6ea8;
+    --tack-yellow: #d9a92b;
+    --card: #fdf7e8;
+    --card-2: #fff8e6;
+    --card-line: #d8cca8;
+    --success: #4d7a3a;
+    --shadow: rgba(60, 40, 20, .18);
+  }
+
+  html, body { background: var(--parchment); color: var(--ink); font-family: 'Lora', Georgia, serif; }
+  body {
+    background-color: var(--parchment);
+    background-image:
+      radial-gradient(rgba(120,90,50,.08) 1px, transparent 1px),
+      radial-gradient(rgba(120,90,50,.05) 1px, transparent 1px);
+    background-size: 22px 22px, 11px 11px;
+    background-position: 0 0, 5px 8px;
+    min-height: 100vh;
+  }
+  h1,h2,h3,h4 { font-family: 'Kalam', 'Patrick Hand', cursive; color: var(--ink); font-weight: 700; letter-spacing: .5px; margin: 0; }
+  a { color: var(--red-dark); }
+
+  /* --------- Layout --------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 24px 80px; }
+
+  /* Topbar */
+  .topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 22px; margin-bottom: 30px;
+    background: var(--card); border: 1px dashed var(--card-line);
+    border-radius: 6px; box-shadow: 0 4px 10px var(--shadow);
+    position: relative;
+  }
+  .wordmark { font-family:'Kalam',cursive; font-size: 28px; font-weight: 700; display:flex; align-items:center; gap:10px; }
+  .wordmark .ring { width:30px; height:30px; border:3px solid var(--red); border-radius:50%; position:relative; }
+  .wordmark .ring::after { content:""; position:absolute; top:-4px; left:11px; width:8px; height:8px; background:var(--red); border-radius:50%; box-shadow: 0 0 0 2px var(--parchment); }
+  .btn {
+    font-family:'Patrick Hand',cursive; font-size: 18px;
+    background: var(--red); color: #fff8e6; border: none;
+    padding: 8px 18px; border-radius: 22px; cursor: pointer;
+    box-shadow: 0 3px 0 var(--red-dark), 0 5px 10px var(--shadow);
+    transition: transform .1s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--red-dark); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 2px dashed var(--ink); box-shadow: none; }
+  .btn.small { font-size: 15px; padding: 5px 12px; }
+  .btn.green { background: var(--success); box-shadow: 0 3px 0 #2f4f22, 0 5px 10px var(--shadow); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform:none; box-shadow: 0 2px 0 var(--red-dark); }
+
+  /* --------- Hero --------- */
+  .hero {
+    text-align:center; padding: 40px 20px 30px; position: relative;
+  }
+  .hero h1 {
+    font-size: clamp(38px, 6vw, 64px);
+    line-height: 1.05;
+  }
+  .hero h1 .accent { color: var(--red); position: relative; display: inline-block; }
+  .hero h1 .accent::after {
+    content:""; position:absolute; left:-4%; right:-4%; bottom:6px; height:10px;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10'><path d='M0 6 Q 25 0 50 6 T 100 6' stroke='%23c0442e' stroke-width='2' fill='none' opacity='.5'/></svg>") no-repeat;
+    background-size: 100% 100%;
+  }
+  .hero p.tag {
+    font-family:'Patrick Hand',cursive; font-size: 22px; color: var(--ink-soft);
+    margin: 14px auto 24px; max-width: 620px;
+  }
+
+  .steps {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 36px 0;
+  }
+  @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+  .step {
+    background: var(--card); padding: 22px 20px 24px; border-radius: 8px;
+    border: 1px solid var(--card-line);
+    box-shadow: 0 3px 8px var(--shadow);
+    position: relative; text-align: center;
+  }
+  .step:nth-child(1) { transform: rotate(-1.4deg); }
+  .step:nth-child(2) { transform: rotate(.8deg); }
+  .step:nth-child(3) { transform: rotate(-.6deg); }
+  .step .num {
+    font-family:'Kalam',cursive; font-size: 44px; color: var(--red); line-height: 1;
+  }
+  .step h3 { margin: 8px 0 6px; font-size: 22px; }
+  .step p { color: var(--ink-soft); font-size: 15px; margin: 0; }
+  .step .icon { margin: 6px auto 4px; height: 60px; display:flex; align-items:center; justify-content:center; }
+
+  /* Thumbtacks */
+  .tack {
+    position:absolute; top:-10px; left:50%; transform: translateX(-50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff8a75, var(--tack) 60%, var(--red-dark) 100%);
+    box-shadow: 0 3px 4px var(--shadow), inset -2px -2px 3px rgba(0,0,0,.2);
+    z-index: 3;
+  }
+  .tack.blue { background: radial-gradient(circle at 35% 30%, #7fa9d8, var(--tack-blue) 60%, #274e7a 100%); }
+  .tack.yellow { background: radial-gradient(circle at 35% 30%, #fce09a, var(--tack-yellow) 60%, #a5811d 100%); }
+
+  /* --------- App --------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0;
+  }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--card-2); border: 1px solid var(--card-line);
+    border-radius: 6px; padding: 14px 16px; box-shadow: 0 2px 6px var(--shadow);
+    position: relative;
+  }
+  .stat .lbl { font-family:'Patrick Hand',cursive; font-size: 15px; color: var(--ink-soft); }
+  .stat .val { font-family:'Kalam',cursive; font-size: 30px; color: var(--ink); }
+  .stat.tilt-a { transform: rotate(-.6deg); }
+  .stat.tilt-b { transform: rotate(.7deg); }
+  .stat.tilt-c { transform: rotate(-.3deg); }
+  .stat.tilt-d { transform: rotate(.4deg); }
+
+  /* Section headings */
+  .section-title {
+    font-family:'Kalam',cursive; font-size: 30px; margin: 36px 0 14px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .section-title::before { content:""; width:30px; height:3px; background: var(--red); border-radius: 2px; }
+
+  /* Create card */
+  .create-card {
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 8px; padding: 22px 22px 24px;
+    box-shadow: 0 4px 10px var(--shadow);
+    position: relative;
+  }
+  .create-card h3 { font-size: 24px; margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 12px; align-items: end; }
+  @media (max-width: 760px) { .form-row { grid-template-columns: 1fr 1fr; } }
+  .field label { display:block; font-family:'Patrick Hand',cursive; font-size: 15px; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; font-family:'Lora',serif; font-size: 15px;
+    background: var(--parchment); border: 1px solid var(--card-line);
+    border-radius: 4px; color: var(--ink);
+    border-bottom: 2px solid var(--ink-soft);
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--red); outline-offset: 1px; }
+
+  /* Tabs */
+  .tabs { display:flex; gap: 8px; margin: 12px 0 18px; }
+  .tab {
+    font-family:'Patrick Hand',cursive; font-size: 18px;
+    background: transparent; border: 2px dashed var(--ink-soft); color: var(--ink);
+    padding: 6px 16px; border-radius: 20px; cursor: pointer;
+  }
+  .tab.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+
+  /* Circle grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 26px; }
+  .card {
+    background: var(--card); border-radius: 6px;
+    padding: 18px 18px 20px; position: relative;
+    box-shadow: 0 5px 14px var(--shadow), 0 1px 0 rgba(0,0,0,.05);
+    border: 1px solid var(--card-line);
+    overflow: hidden;
+  }
+  .card:nth-child(3n+1) { transform: rotate(-1.2deg); }
+  .card:nth-child(3n+2) { transform: rotate(.9deg); }
+  .card:nth-child(3n+3) { transform: rotate(-.4deg); }
+  .card::before {
+    /* subtle notebook lines */
+    content:""; position:absolute; inset: 40px 0 0 0; pointer-events:none;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 26px, rgba(120,90,50,.08) 26px 27px);
+    opacity: .5;
+  }
+  .card .head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 8px; }
+  .card .head h4 { font-size: 22px; }
+  .card .id { font-family:'Patrick Hand',cursive; color: var(--ink-soft); font-size: 14px; }
+  .card .meta { font-family:'Patrick Hand',cursive; font-size: 15px; color: var(--ink-soft); margin-bottom: 8px; }
+  .card .meta strong { color: var(--ink); font-family:'Lora',serif; }
+
+  .badge {
+    display:inline-block; font-family:'Patrick Hand',cursive; font-size: 13px;
+    padding: 2px 10px; border-radius: 20px; border: 1px solid var(--ink-soft); color: var(--ink);
+    background: var(--parchment); margin-left: 6px;
+  }
+  .badge.recruit { border-color: var(--tack-blue); color: var(--tack-blue); }
+  .badge.active { border-color: var(--success); color: var(--success); }
+  .badge.done { border-color: var(--ink-soft); color: var(--ink-soft); }
+
+  /* Ring diagram */
+  .ring-wrap { display:flex; justify-content:center; margin: 14px 0 12px; }
+  .ring-svg { width: 200px; height: 200px; }
+  .avatar-label { font-family: 'Patrick Hand', cursive; font-size: 11px; fill: var(--ink); }
+
+  .actions { display:flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+  .empty {
+    text-align:center; padding: 40px 20px; color: var(--ink-soft);
+    font-family:'Patrick Hand',cursive; font-size: 18px;
+    background: var(--card); border: 1px dashed var(--card-line); border-radius: 8px;
+  }
+
+  /* Toasts */
+  #toasts { position: fixed; bottom: 20px; right: 20px; display:flex; flex-direction: column; gap: 10px; z-index: 999; max-width: 340px; }
+  .toast {
+    background: var(--card); color: var(--ink); border-left: 5px solid var(--red);
+    padding: 12px 14px; border-radius: 4px; box-shadow: 0 6px 16px var(--shadow);
+    font-family:'Patrick Hand',cursive; font-size: 16px;
+    transform: rotate(-.6deg);
+  }
+  .toast.ok { border-left-color: var(--success); }
+  .toast.err { border-left-color: var(--red-dark); }
+
+  .foot {
+    text-align:center; padding: 40px 20px 0; color: var(--ink-soft);
+    font-family:'Patrick Hand',cursive; font-size: 15px;
+  }
+
+  .divider {
+    height: 30px; margin: 32px 0 0; position: relative;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20'><path d='M0 10 Q 25 0 50 10 T 100 10 T 150 10 T 200 10' stroke='%23c0442e' stroke-width='1.5' fill='none' opacity='.5'/></svg>") repeat-x;
+    background-size: 200px 20px;
+  }
+
+  /* NETWORK BANNER
+     Default: TESTNET (chainId 0x3C8 / 968), RPC https://rpc.bohr.life
+     -----------------------------------------------------------------
+     To switch this dApp to MAINNET, change the values inside
+     the NETWORK block below:
+       chainIdHex : "0x2A5"
+       chainIdDec : 677
+       chainName  : "BOT Chain"
+       rpcUrl     : "https://rpc.botchain.ai"
+       explorer   : "https://scan.botchain.ai"
+  */
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="wordmark"><span class="ring"></span>CircleFund</div>
+    <div style="display:flex; gap: 10px; align-items:center;">
+      <span id="netLabel" class="badge">not connected</span>
+      <button id="connectBtn" class="btn">Connect Wallet</button>
+    </div>
+  </div>
+
+  <section class="hero">
+    <h1>Save together.<br/><span class="accent">Turn by turn.</span></h1>
+    <p class="tag">CircleFund brings the old wisdom of neighbourhood savings circles on-chain. A small group. A shared pot. Everyone gets a turn.</p>
+    <button class="btn" onclick="document.getElementById('appSection').scrollIntoView({behavior:'smooth'})">Open the bulletin board</button>
+  </section>
+
+  <div class="steps">
+    <div class="step">
+      <span class="tack"></span>
+      <div class="icon">
+        <svg width="70" height="60" viewBox="0 0 70 60" fill="none">
+          <circle cx="20" cy="30" r="10" fill="none" stroke="#1a1815" stroke-width="2"/>
+          <circle cx="50" cy="30" r="10" fill="none" stroke="#1a1815" stroke-width="2"/>
+          <circle cx="35" cy="12" r="7" fill="none" stroke="#c0442e" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="num">1</div>
+      <h3>Form a circle</h3>
+      <p>Pick a size, a monthly amount, and how long each round lasts. Friends join the seats.</p>
+    </div>
+    <div class="step">
+      <span class="tack blue"></span>
+      <div class="icon">
+        <svg width="70" height="60" viewBox="0 0 70 60">
+          <rect x="10" y="18" width="50" height="30" rx="4" fill="none" stroke="#1a1815" stroke-width="2"/>
+          <path d="M35 26 v14 M28 33 h14" stroke="#c0442e" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="num">2</div>
+      <h3>Contribute each round</h3>
+      <p>Every member pitches in the same amount. Rounds tick over automatically.</p>
+    </div>
+    <div class="step">
+      <span class="tack yellow"></span>
+      <div class="icon">
+        <svg width="70" height="60" viewBox="0 0 70 60">
+          <circle cx="35" cy="30" r="18" fill="none" stroke="#1a1815" stroke-width="2"/>
+          <path d="M35 30 l0 -14" stroke="#c0442e" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="35" cy="16" r="4" fill="#c0442e"/>
+        </svg>
+      </div>
+      <div class="num">3</div>
+      <h3>Take your turn</h3>
+      <p>Each round, one member takes the whole pot. When everyone's had a turn, the circle is complete.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <section id="appSection">
+    <h2 class="section-title">The bulletin board</h2>
+
+    <div class="stats">
+      <div class="stat tilt-a"><div class="lbl">Active circles</div><div class="val" id="stActive">—</div></div>
+      <div class="stat tilt-b"><div class="lbl">Total members</div><div class="val" id="stMembers">—</div></div>
+      <div class="stat tilt-c"><div class="lbl">Total pot value</div><div class="val" id="stPot">— BOT</div></div>
+      <div class="stat tilt-d"><div class="lbl">Your balance</div><div class="val" id="stBal">— BOT</div></div>
+    </div>
+
+    <div class="create-card">
+      <span class="tack" style="left: 26px;"></span>
+      <h3>Pin up a new circle</h3>
+      <div class="form-row">
+        <div class="field">
+          <label for="fSize">Size (2–20)</label>
+          <input id="fSize" type="number" min="2" max="20" value="5"/>
+        </div>
+        <div class="field">
+          <label for="fAmt">Amount per round (BOT)</label>
+          <input id="fAmt" type="number" step="0.001" min="0" value="1"/>
+        </div>
+        <div class="field">
+          <label for="fRound">Round duration</label>
+          <select id="fRound">
+            <option value="86400">1 day</option>
+            <option value="604800" selected>1 week</option>
+            <option value="2592000">1 month (30d)</option>
+            <option value="custom">Custom (seconds)…</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="createBtn" class="btn">Create</button>
+        </div>
+      </div>
+      <div id="customRoundWrap" hidden style="margin-top: 10px;">
+        <div class="field">
+          <label for="fRoundSecs">Custom round length (seconds, min 60)</label>
+          <input id="fRoundSecs" type="number" min="60" value="3600"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="mine">My circles</button>
+      <button class="tab" data-tab="open">Open circles</button>
+      <button class="tab" data-tab="all">All</button>
+      <button id="refreshBtn" class="tab" style="margin-left:auto;">Refresh</button>
+    </div>
+
+    <div id="cards" class="grid"></div>
+  </section>
+
+  <div class="foot">
+    <div>Made warm on BOT Chain · <a id="explorerLink" href="https://scan.bohr.life" target="_blank" rel="noopener">block explorer</a></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* =====================================================================
+ * NETWORK — default TESTNET (Bohr).
+ * To use MAINNET, swap the values below to:
+ *   chainIdHex "0x2A5", chainIdDec 677, rpcUrl https://rpc.botchain.ai,
+ *   explorer https://scan.botchain.ai, chainName "BOT Chain"
+ * ===================================================================== */
+const NETWORK = {
+  chainIdHex: "0x3C8",
+  chainIdDec: 968,
+  chainName: "BOT Chain Testnet (Bohr)",
+  rpcUrl:   "https://rpc.bohr.life",
+  explorer: "https://scan.bohr.life",
+  symbol:   "BOT",
+};
+
+const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const ABI = [
+  "function circleCount() view returns (uint256)",
+  "function platformFeeBps() view returns (uint16)",
+  "function createCircle(uint8 size, uint256 amountPerRound, uint256 roundSecs) returns (uint256)",
+  "function joinCircle(uint256 circleId)",
+  "function startCircle(uint256 circleId)",
+  "function contributeRound(uint256 circleId) payable",
+  "function claimPot(uint256 circleId)",
+  "function advanceRound(uint256 circleId)",
+  "function getCircle(uint256) view returns (address creator, uint8 size, uint256 amountPerRound, uint256 roundSecs, uint256 startTime, uint8 currentRound, uint8 memberCount, uint8 status)",
+  "function getMembers(uint256) view returns (address[])",
+  "function whoseTurnIsIt(uint256) view returns (address)",
+  "function hasContributedThisRound(uint256, address) view returns (bool)",
+  "function getContributionsThisRound(uint256) view returns (uint256)",
+  "function getCirclesByMember(address) view returns (uint256[])",
+  "event CircleCreated(uint256 indexed circleId, address indexed creator, uint8 size, uint256 amountPerRound, uint256 roundSecs)",
+  "event MemberJoined(uint256 indexed circleId, address indexed member, uint8 seat)",
+  "event CircleStarted(uint256 indexed circleId, uint256 startTime)",
+  "event Contributed(uint256 indexed circleId, uint8 indexed round, address indexed member, uint256 amount)",
+  "event PotClaimed(uint256 indexed circleId, uint8 indexed round, address indexed recipient, uint256 amount, uint256 fee)"
+];
+
+let provider, signer, address, contract, readOnly;
+let tabMode = "mine";
+let cache = { circles: [], mineIds: new Set() };
+
+document.getElementById("explorerLink").href = NETWORK.explorer;
+document.getElementById("connectBtn").addEventListener("click", connect);
+document.getElementById("createBtn").addEventListener("click", createCircle);
+document.getElementById("refreshBtn").addEventListener("click", () => loadAll(true));
+document.querySelectorAll(".tab[data-tab]").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab[data-tab]").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  tabMode = t.dataset.tab; render();
+}));
+document.getElementById("fRound").addEventListener("change", (e) => {
+  document.getElementById("customRoundWrap").hidden = e.target.value !== "custom";
+});
+
+/* ------------- Toasts ------------- */
+function toast(msg, kind = "") {
+  const t = document.createElement("div");
+  t.className = "toast " + kind;
+  t.textContent = msg;
+  document.getElementById("toasts").appendChild(t);
+  setTimeout(() => { t.style.opacity = 0; t.style.transition = "opacity .4s"; }, 3800);
+  setTimeout(() => t.remove(), 4400);
+}
+
+/* ------------- Wallet ------------- */
+async function ensureNetwork() {
+  try {
+    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: NETWORK.chainIdHex }] });
+  } catch (e) {
+    if (e.code === 4902 || (e.data && e.data.originalError && e.data.originalError.code === 4902)) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: NETWORK.chainIdHex,
+          chainName: NETWORK.chainName,
+          rpcUrls: [NETWORK.rpcUrl],
+          nativeCurrency: { name: NETWORK.symbol, symbol: NETWORK.symbol, decimals: 18 },
+          blockExplorerUrls: [NETWORK.explorer],
+        }],
+      });
+    } else {
+      throw e;
+    }
+  }
+}
+
+async function connect() {
+  if (!window.ethereum) { toast("MetaMask not detected", "err"); return; }
+  try {
+    await ensureNetwork();
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    address = await signer.getAddress();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    document.getElementById("connectBtn").textContent = address.slice(0,6) + "…" + address.slice(-4);
+    document.getElementById("netLabel").textContent = NETWORK.chainName;
+    toast("Wallet connected", "ok");
+    await loadAll(true);
+    window.ethereum.on("accountsChanged", () => location.reload());
+    window.ethereum.on("chainChanged",   () => location.reload());
+  } catch (e) {
+    console.error(e); toast(e.message || "Connect failed", "err");
+  }
+}
+
+function readContract() {
+  if (contract) return contract;
+  if (!readOnly) {
+    const rp = new ethers.JsonRpcProvider(NETWORK.rpcUrl);
+    readOnly = new ethers.Contract(CONTRACT_ADDRESS, ABI, rp);
+  }
+  return readOnly;
+}
+
+/* ------------- Actions ------------- */
+async function createCircle() {
+  if (!contract) { toast("Connect wallet first", "err"); return; }
+  try {
+    const size = parseInt(document.getElementById("fSize").value, 10);
+    const amt  = document.getElementById("fAmt").value;
+    const sel  = document.getElementById("fRound").value;
+    const secs = sel === "custom"
+      ? parseInt(document.getElementById("fRoundSecs").value, 10)
+      : parseInt(sel, 10);
+    if (!(size >= 2 && size <= 20)) return toast("Size must be 2–20", "err");
+    if (!amt || Number(amt) <= 0)   return toast("Amount must be > 0", "err");
+    if (!(secs >= 60))              return toast("Round must be ≥ 60s", "err");
+    toast("Creating circle…");
+    const tx = await contract.createCircle(size, ethers.parseEther(amt), secs);
+    await tx.wait();
+    toast("Circle created", "ok");
+    await loadAll(true);
+  } catch (e) { console.error(e); toast(reason(e), "err"); }
+}
+
+async function joinCircle(id) {
+  try { toast("Joining…"); const tx = await contract.joinCircle(id); await tx.wait();
+    toast("Joined circle #" + id, "ok"); await loadAll(true);
+  } catch (e) { toast(reason(e), "err"); }
+}
+async function startCircle(id) {
+  try { toast("Starting…"); const tx = await contract.startCircle(id); await tx.wait();
+    toast("Circle #" + id + " is live", "ok"); await loadAll(true);
+  } catch (e) { toast(reason(e), "err"); }
+}
+async function contribute(id, amountWei) {
+  try { toast("Contributing…"); const tx = await contract.contributeRound(id, { value: amountWei }); await tx.wait();
+    toast("Contribution recorded", "ok"); await loadAll(true);
+  } catch (e) { toast(reason(e), "err"); }
+}
+async function claim(id) {
+  try { toast("Claiming pot…"); const tx = await contract.claimPot(id); await tx.wait();
+    toast("Pot claimed", "ok"); await loadAll(true);
+  } catch (e) { toast(reason(e), "err"); }
+}
+async function advance(id) {
+  try { toast("Advancing round…"); const tx = await contract.advanceRound(id); await tx.wait();
+    toast("Round advanced", "ok"); await loadAll(true);
+  } catch (e) { toast(reason(e), "err"); }
+}
+
+function reason(e) {
+  return e?.shortMessage || e?.reason || e?.message || "Transaction failed";
+}
+
+/* ------------- Load ------------- */
+async function loadAll(showLoading) {
+  const c = readContract();
+  if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+    document.getElementById("cards").innerHTML =
+      '<div class="empty">Set CONTRACT_ADDRESS in <code>frontend/index.html</code> to the deployed address, then reload.</div>';
+    return;
+  }
+  try {
+    const count = Number(await c.circleCount());
+    const circles = [];
+    for (let i = 0; i < count; i++) {
+      const [info, members, turn, potNow] = await Promise.all([
+        c.getCircle(i), c.getMembers(i), c.whoseTurnIsIt(i), c.getContributionsThisRound(i),
+      ]);
+      const contributed = address ? await c.hasContributedThisRound(i, address) : false;
+      circles.push({
+        id: i,
+        creator: info[0], size: Number(info[1]),
+        amountPerRound: info[2], roundSecs: Number(info[3]),
+        startTime: Number(info[4]), currentRound: Number(info[5]),
+        memberCount: Number(info[6]), status: Number(info[7]),
+        members, turn, potNow,
+        youContributed: contributed,
+      });
+    }
+    cache.circles = circles;
+    cache.mineIds = new Set(
+      circles.filter(x => address && x.members.map(m=>m.toLowerCase()).includes(address.toLowerCase())).map(x => x.id)
+    );
+
+    // stats
+    const active = circles.filter(x => x.status === 1);
+    const totalMembers = circles.reduce((s,x) => s + x.memberCount, 0);
+    const totalPot = active.reduce((s,x) => s + x.potNow, 0n);
+    document.getElementById("stActive").textContent  = active.length;
+    document.getElementById("stMembers").textContent = totalMembers;
+    document.getElementById("stPot").textContent     = fmt(totalPot) + " BOT";
+    if (address && provider) {
+      const bal = await provider.getBalance(address);
+      document.getElementById("stBal").textContent = fmt(bal) + " BOT";
+    }
+    render();
+  } catch (e) {
+    console.error(e);
+    if (showLoading) toast("Couldn't load circles: " + reason(e), "err");
+  }
+}
+
+function fmt(wei) {
+  try { const s = ethers.formatEther(wei); return Number(s).toFixed(3).replace(/\.?0+$/, ""); }
+  catch { return "0"; }
+}
+function shortAddr(a) { return a.slice(0,6) + "…" + a.slice(-4); }
+function statusName(s) { return ["Recruiting","Active","Completed","Cancelled"][s] || "?"; }
+function statusBadge(s) { return s===0 ? "recruit" : s===1 ? "active" : "done"; }
+function roundLabel(secs) {
+  if (secs % 86400 === 0) { const d = secs/86400; return d + (d===1?" day":" days"); }
+  if (secs >= 3600) return (secs/3600) + "h";
+  return secs + "s";
+}
+
+function render() {
+  const box = document.getElementById("cards");
+  let list = cache.circles;
+  if (tabMode === "mine") list = list.filter(c => cache.mineIds.has(c.id));
+  else if (tabMode === "open") list = list.filter(c => c.status === 0 && (!address || !cache.mineIds.has(c.id)));
+
+  if (list.length === 0) {
+    box.innerHTML = `<div class="empty">${tabMode === "mine"
+      ? "You haven't joined a circle yet. Create one, or check the Open board."
+      : tabMode === "open"
+      ? "No open seats right now. Pin a new circle up top to start one."
+      : "The board is empty. Be the first to create a circle."}</div>`;
+    return;
+  }
+  box.innerHTML = list.slice().reverse().map(renderCard).join("");
+}
+
+function renderCard(c) {
+  const isMine = address && c.members.map(m=>m.toLowerCase()).includes(address.toLowerCase());
+  const isTurn = address && c.turn && c.turn.toLowerCase() === address.toLowerCase();
+  const isCreator = address && c.creator.toLowerCase() === address.toLowerCase();
+  const canJoin = c.status === 0 && !isMine && c.memberCount < c.size;
+  const canStart = c.status === 0 && isCreator && c.memberCount === c.size;
+  const canContrib = c.status === 1 && isMine && !c.youContributed;
+  const canClaim  = c.status === 1 && isTurn;
+
+  const roundNow = c.status === 1 ? (c.currentRound + 1) : (c.status === 0 ? 0 : c.size);
+  const pot = c.status === 1 ? fmt(c.potNow) : "—";
+  const perRound = fmt(c.amountPerRound);
+
+  const buttons = [];
+  if (canJoin)   buttons.push(`<button class="btn small" onclick="joinCircle(${c.id})">Join seat ${c.memberCount + 1}/${c.size}</button>`);
+  if (canStart)  buttons.push(`<button class="btn small green" onclick="startCircle(${c.id})">Start circle</button>`);
+  if (canContrib) buttons.push(`<button class="btn small green" onclick="contribute(${c.id}, '${c.amountPerRound.toString()}')">Contribute ${perRound} BOT</button>`);
+  if (canClaim)  buttons.push(`<button class="btn small" onclick="claim(${c.id})">Claim pot</button>`);
+  if (c.status === 1 && !canClaim) buttons.push(`<button class="btn small ghost" onclick="advance(${c.id})">Poke round</button>`);
+  if (buttons.length === 0) buttons.push(`<span class="badge">Nothing to do here</span>`);
+
+  const tack = ["", "blue", "yellow"][c.id % 3];
+
+  return `
+    <div class="card">
+      <span class="tack ${tack}"></span>
+      <div class="head">
+        <h4>Circle #${c.id}</h4>
+        <span class="id">by ${shortAddr(c.creator)}</span>
+      </div>
+      <div class="meta">
+        <strong>${c.memberCount}/${c.size}</strong> members · <strong>${perRound} BOT</strong> / round · every <strong>${roundLabel(c.roundSecs)}</strong>
+        <span class="badge ${statusBadge(c.status)}">${statusName(c.status)}</span>
+      </div>
+      ${c.status === 1 ? `<div class="meta">Round <strong>${roundNow}/${c.size}</strong> · pot this round: <strong>${pot} BOT</strong></div>` : ""}
+      <div class="ring-wrap">${renderRing(c)}</div>
+      <div class="actions">${buttons.join(" ")}</div>
+    </div>`;
+}
+
+function renderRing(c) {
+  const size = 200, cx = size/2, cy = size/2, R = 74, ar = 16;
+  const seats = c.size;
+  const members = c.members;
+  const activeIdx = c.status === 1 ? c.currentRound : -1;
+  // Angle 0 at top, clockwise
+  function pt(i) {
+    const angle = (-Math.PI/2) + (2*Math.PI*i)/seats;
+    return { x: cx + R*Math.cos(angle), y: cy + R*Math.sin(angle) };
+  }
+
+  let svg = `<svg class="ring-svg" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
+  // outer ring
+  svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#1a1815" stroke-width="1.3" stroke-dasharray="3 4" opacity=".55"/>`;
+
+  // red thread from center to active seat
+  if (activeIdx >= 0 && members[activeIdx]) {
+    const p = pt(activeIdx);
+    svg += `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="var(--thread)" stroke-width="2.5" stroke-linecap="round"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--thread)"/>`;
+    // arrow tip
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="${ar+3}" fill="none" stroke="var(--thread)" stroke-width="2"/>`;
+  }
+
+  // seats
+  for (let i = 0; i < seats; i++) {
+    const p = pt(i);
+    const filled = i < members.length;
+    const you = filled && address && members[i].toLowerCase() === address.toLowerCase();
+    const done = c.status === 1 && i < activeIdx; // already claimed
+    let fill = filled ? "#ece3cd" : "#fdf7e8";
+    let stroke = filled ? "#1a1815" : "#b98a5a";
+    if (i === activeIdx) fill = "#c0442e";
+    if (you && i !== activeIdx) stroke = "#c0442e";
+    if (done) { fill = "#d8cca8"; stroke = "#8f643b"; }
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="${ar}" fill="${fill}" stroke="${stroke}" stroke-width="${i===activeIdx?2.2:1.5}"/>`;
+    const label = filled
+      ? (you ? "you" : (members[i].slice(2,4) + members[i].slice(-2)).toLowerCase())
+      : (i+1);
+    const textColor = i === activeIdx ? "#fff8e6" : "#1a1815";
+    svg += `<text x="${p.x}" y="${p.y+3}" text-anchor="middle" class="avatar-label" fill="${textColor}">${label}</text>`;
+    if (done) {
+      svg += `<path d="M${p.x-6},${p.y} l4,4 l8,-8" stroke="#4d7a3a" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    }
+  }
+
+  // center label
+  if (c.status === 0) {
+    svg += `<text x="${cx}" y="${cy-4}" text-anchor="middle" font-family="Kalam,cursive" font-size="14" fill="#4a443a">recruiting</text>`;
+    svg += `<text x="${cx}" y="${cy+14}" text-anchor="middle" font-family="Patrick Hand,cursive" font-size="13" fill="#1a1815">${c.memberCount}/${c.size}</text>`;
+  } else if (c.status === 2) {
+    svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Kalam,cursive" font-size="16" fill="#4d7a3a">complete ✓</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+/* Kick off */
+loadAll(false);
+</script>
+</body>
+</html>
